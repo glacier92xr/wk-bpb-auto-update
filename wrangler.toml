@@ -5,8 +5,10 @@ workers_dev = false
 
 [[kv_namespaces]]
 binding = "kv"
+#修改为自己创建的kv id
 id = "56716a45f8764a67960d9dc7eacc40f0"
 
 [vars]
-UUID= "d3129df7-1eb7-4eba-a12f-79775c1936f9"
-TR_PASS = "8f01b439-e47f-47f2-86b9-ed77034cbf2d"
+# 修改为自己的
+UUID= "2475721d-a490-42d6-9255-cd1bddfb805d"
+TR_PASS = "157a9dd6-54fc-4228-aeac-8ff9676d074f"
