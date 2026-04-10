@@ -1,4 +1,4 @@
-name = "wk-bpb-auto-update"
+name = "wk-auto-update"
 main = "_worker.js"
 compatibility_date = "2024-04-28"
 workers_dev = false
