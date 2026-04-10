@@ -1,7 +1,7 @@
 name = "wk-bpb-auto-update"
 main = "_worker.js"
 compatibility_date = "2024-04-28"
-workers_dev = false
+workers_dev = true
 
 [[kv_namespaces]]
 binding = "kv"
