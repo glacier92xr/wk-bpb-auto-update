@@ -11,8 +11,8 @@ RETRY_DELAY=2
 
 log() {
     local msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-    echo "$msg"
     echo "$msg" >> "$LOG_FILE"
+    echo "$msg" >&2
 }
 
 info() {
@@ -189,7 +189,7 @@ create_kv() {
         log "Attempt $attempt/$MAX_RETRIES for: Create KV namespace"
 
         local output
-        if output=$(npx wrangler kv namespace create "$name" --binding "C" --update-config 2>&1); then
+        if output=$(npx wrangler kv namespace create "$name" --update-config 2>&1); then
             log "Wrangler output: $output"
 
             if echo "$output" | grep -qE "Error|error|ERROR"; then
