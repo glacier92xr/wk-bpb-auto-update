@@ -1,7 +1,8 @@
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$KvName
-)
+if ($args.Count -gt 0) {
+    $KvName = $args[0]
+} else {
+    $KvName = $null
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -122,8 +123,8 @@ function Test-InputParameter {
     if ([string]::IsNullOrWhiteSpace($KvName)) {
         Write-Err "KV name parameter is required but was not provided"
         Write-Host ""
-        Write-Host "Usage: .\step-kv.ps1 -KvName <KVName>" -ForegroundColor Yellow
-        Write-Host "Example: .\step-kv.ps1 -KvName my-kv-namespace" -ForegroundColor Yellow
+        Write-Host "Usage: .\step-kv.ps1 <KVName>" -ForegroundColor Yellow
+        Write-Host "Example: .\step-kv.ps1 my-kv-namespace" -ForegroundColor Yellow
         exit 1
     }
 
