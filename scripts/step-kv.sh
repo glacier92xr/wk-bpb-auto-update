@@ -17,25 +17,25 @@ log() {
 
 info() {
     local msg="$1"
-    echo -e "\033[36m$msg\033[0m"
+    echo -e "\033[36m$msg\033[0m" >&2
     log "$msg"
 }
 
 success() {
     local msg="$1"
-    echo -e "\033[32m$msg\033[0m"
+    echo -e "\033[32m$msg\033[0m" >&2
     log "$msg"
 }
 
 warn() {
     local msg="WARN: $1"
-    echo -e "\033[33m$msg\033[0m"
+    echo -e "\033[33m$msg\033[0m" >&2
     log "$msg"
 }
 
 error() {
     local msg="ERROR: $1"
-    echo -e "\033[31m$msg\033[0m"
+    echo -e "\033[31m$msg\033[0m" >&2
     log "$msg"
     exit 1
 }
@@ -123,7 +123,15 @@ get_current_kv_id() {
     fi
 
     local kv_id
-    kv_id=$(grep -oP 'id\s*=\s*"\K[^"]+' "$WRANGLER_TOML" | head -1)
+    kv_id=$(awk '
+        /^\[\[kv_namespaces\]\]$/ { in_kv=1; next }
+        in_kv && /^[[:space:]]*id[[:space:]]*=/ {
+            match($0, /"[^"]+"/)
+            print substr($0, RSTART+1, RLENGTH-2)
+            exit
+        }
+        /^\[/ { in_kv=0 }
+    ' "$WRANGLER_TOML")
 
     if [ -n "$kv_id" ]; then
         echo "$kv_id"
@@ -189,7 +197,7 @@ create_kv() {
         log "Attempt $attempt/$MAX_RETRIES for: Create KV namespace"
 
         local output
-        if output=$(npx wrangler kv namespace create "$name" --update-config 2>&1); then
+        if output=$(npx wrangler kv namespace create "$name" 2>&1); then
             log "Wrangler output: $output"
 
             if echo "$output" | grep -qE "Error|error|ERROR"; then
@@ -229,27 +237,21 @@ update_wrangler_toml() {
     local backup_path
     backup_path=$(backup_config_file "$WRANGLER_TOML")
 
-    local tmp_file="$WRANGLER_TOML.tmp"
+    # 转换 CRLF 为 LF，确保跨平台兼容
+    sed -i 's/\r$//' "$WRANGLER_TOML"
 
-    awk -v kv_id="$kv_id" '
-        BEGIN { in_kv=0 }
-        /^\[\[kv_namespaces\]\]$/ { in_kv=1 }
+    # 找到 [[kv_namespaces]] 块后的第一行 id= 替换
+    awk -v new_id="$kv_id" '
+        /^\[\[kv_namespaces\]\]/ { in_kv=1; print; next }
         in_kv && /^[[:space:]]*id[[:space:]]*=/ {
-            sub(/"[^"]*"/, "\"" kv_id "\"")
-            in_kv = 0
+            sub(/"[^"]*"/, "\"" new_id "\"")
+            in_kv=0
         }
-        /^\[/ && ! /^\[\[kv_namespaces\]\]/ { in_kv=0 }
         { print }
-    ' "$WRANGLER_TOML" > "$tmp_file"
+    ' "$WRANGLER_TOML" > "$WRANGLER_TOML.tmp" && mv "$WRANGLER_TOML.tmp" "$WRANGLER_TOML"
 
-    if mv "$tmp_file" "$WRANGLER_TOML"; then
-        success "wrangler.toml updated successfully"
-        return 0
-    else
-        log "Failed to write updated config, restoring from backup..."
-        cp "$backup_path" "$WRANGLER_TOML"
-        error "Failed to update wrangler.toml"
-    fi
+    success "wrangler.toml updated successfully"
+    return 0
 }
 
 test_config_update() {
@@ -261,7 +263,14 @@ test_config_update() {
     fi
 
     local actual_id
-    actual_id=$(grep -oP 'id\s*=\s*"\K[^"]+' "$WRANGLER_TOML" | head -1)
+    actual_id=$(awk '
+        /^\[\[kv_namespaces\]\]/ { in_kv=1; next }
+        in_kv && /^[[:space:]]*id[[:space:]]*=/ {
+            match($0, /"[^"]+"/)
+            print substr($0, RSTART+1, RLENGTH-2)
+            exit
+        }
+    ' "$WRANGLER_TOML")
 
     if [ -z "$actual_id" ]; then
         error "Config verification failed - No KV ID found in config"
