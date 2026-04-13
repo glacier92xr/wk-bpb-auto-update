@@ -8,10 +8,20 @@
 
 3. **配置 Cloudflare 凭证（Secrets）：**
 
-   | 类型    | 名称            | 说明                                                                |
-   | ------- | --------------- | ------------------------------------------------------------------- |
-   | Secrets | `CF_API_TOKEN`  | Cloudflare API Token，需包含 Workers Edit、Workers Routes Edit 权限 |
-   | Secrets | `CF_ACCOUNT_ID` | Cloudflare 账户 ID                                                  |
+   **必需配置：**
+
+   | 类型    | 名称            | 说明                                                                                  |
+   | ------- | --------------- | ------------------------------------------------------------------------------------- |
+   | Secrets | `CF_API_TOKEN`  | Cloudflare API Token，需包含 Workers Edit、Workers Routes Edit、Workers KV Write 权限 |
+   | Secrets | `CF_ACCOUNT_ID` | Cloudflare 账户 ID，可在 Cloudflare Dashboard URL 中获取                              |
+
+   **可选配置（如需自定义可添加）：**
+
+   | 类型    | 名称              | 说明                                                                            |
+   | ------- | ----------------- | ------------------------------------------------------------------------------- |
+   | Secrets | `CF_VAR_UUID`     | 自定义 UUID 值，用于更新 wrangler.toml 中的节点标识符                           |
+   | Secrets | `CF_VAR_TR_PASS`  | 自定义密码，用于更新 wrangler.toml 中的认证密码                                 |
+   | Secrets | `CF_ROUTE_DOMAIN` | 自定义域名（如 `shop.example.com`），配置后自动启用自定义域名并禁用 workers.dev |
 
 4. 你可以手动点击 Run workflow，也可以等待每天定时自动检查。
 
