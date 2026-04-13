@@ -32,50 +32,60 @@
 ## 功能介绍
 
 - 每天自动检查 bia-pain-bache/BPB-Worker-Panel 仓库的最新 Release
-
-- **支持选择更新正式版或预发布版本：通过手动触发或 `update_type.txt` 文件配置。**
-
 - 自动下载最新版本的 `_worker.js`
-
 - 自动创建/复用 Cloudflare KV 命名空间并绑定到 Worker
-
 - 同步更新本地 version.txt
-
 - 自动提交并推送到本仓库
-
-- **如果 `update_type.txt` 文件不存在，将自动创建并默认设置为更新正式版。**
-
-- **更新成功后，自动复用或创建 GitHub Issue 进行通知。**
+- **更新成功后，自动复用或创建 GitHub Issue 进行通知**
 
 ## 工作流程
 
-GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
+GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行，或通过手动触发执行：
 
-1. **检查 `update_type.txt` 文件：如果文件不存在，会自动创建并写入 `1`（表示正式版）。**
+1. **Checkout 仓库**：检出仓库代码到工作环境。
 
-2. **根据 `update_type.txt` 或手动输入确定更新类型（正式版或预发布版）。**
+2. **设置 Node.js 环境**：配置最新稳定版 Node.js。
 
-3. 获取上游仓库的最新 Release 版本号（根据所选类型）。
+3. **安装系统依赖**：安装 `jq`、`curl`、`unzip` 用于后续操作。
 
-4. 比较本地 version.txt 的记录。
+4. **获取最新版本号**：根据 `RELEASE_TYPE` 环境变量获取上游仓库对应类型的最新版本：
+   - `release`：获取最新正式发布版本（当前默认）
+   - `prerelease`：获取最新预发布版本
 
-5. 若版本不同，则自动下载并替换 `_worker.js`，并更新 `version.txt`。
+5. **读取当前版本号**：从本地 `version.txt` 获取已记录的版本。
 
-6. 自动提交并推送到主分支（main）。
+6. **版本比较**：对比最新版本与当前版本，若一致则终止流程。
 
-7. **如果 `update_type.txt` 文件是自动创建的，也会一并提交到仓库。**
+7. **下载并替换 `_worker.js`**（仅版本不一致时执行）：
+   - 从上游仓库下载对应版本的 `worker.js`
+   - 替换本地 `_worker.js` 文件
+   - 更新 `version.txt` 为最新版本号
 
-8. **初始化环境（安装 wrangler）。**
+8. **提交并推送更新**（仅版本不一致时执行）：
+   - 配置 Git 用户信息（`github-actions[bot]`）
+   - 提交 `_worker.js` 和 `version.txt` 更改
+   - 推送到远程仓库主分支
 
-9. **执行 KV 命名空间创建/绑定流程。**
+9. **发送更新通知**（仅更新成功时执行）：
+   - 查找带有 `auto-update-status-issue` 标签的现有 Issue
+   - 若存在，在该 Issue 下添加评论（含更新时间、版本类型、版本号）
+   - 若不存在，创建新 Issue 并添加标签
 
-10. **更新 wrangler.toml 中的变量（如需配置）。**
+10. **初始化环境**（仅版本不一致时执行）：
+    - 执行 `npm install` 安装 `wrangler` 依赖
 
-11. **部署到 Cloudflare Workers。**
+11. **KV 命名空间创建/绑定**（仅版本不一致时执行）：
+    - 执行 `scripts/step-kv.sh` 脚本
+    - 检查同名 KV 是否已存在，若存在则复用，若不存在则创建
+    - 自动更新 `wrangler.toml` 中的 KV 命名空间 ID
 
-12. **如果更新成功并提交了更改，工作流会首先查找一个名为 `_worker.js 自动更新通知` 且带有 `auto-update-status-issue` 标签的现有 Issue。如果找到，则在该 Issue 下添加一条评论，包含更新时间、版本类型和版本号；如果未找到，则创建一个新的 Issue 并添加该标签。**
+12. **更新 wrangler.toml 变量**（仅版本不一致时执行）：
+    - 若配置了 `CF_VAR_UUID` Secrets，更新 `UUID` 变量
+    - 若配置了 `CF_VAR_TR_PASS` Secrets，更新 `TR_PASS` 变量
+    - 若配置了 `CF_ROUTE_DOMAIN` Secrets，添加 `[[routes]]` 配置并设置 `workers_dev = false`
 
-> 若版本一致，则不执行任何操作。
+13. **部署到 Cloudflare Workers**（仅版本不一致时执行）：
+    - 执行 `npm run deploy` 部署 Worker
 
 ## 📂 目录结构
 
@@ -83,7 +93,6 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 /
 ├── _worker.js              # Cloudflare Worker 主文件（上游同步）
 ├── version.txt             # 当前版本记录
-├── update_type.txt         # 更新类型配置 (1=正式版, 0=预发布版)
 ├── wrangler.toml           # Cloudflare Workers 配置
 ├── package.json            # 项目依赖配置
 ├── scripts/                # 自动化脚本目录
@@ -96,7 +105,6 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 ├── .gitignore              # Git 忽略配置
 ├── .gitattributes          # Git 属性配置（脚本换行符处理）
 ├── README.md               # 项目主文档
-└── README-exp.md           # 衍生项目文档参考
 ```
 
 ## ⚙️ 配置说明
@@ -119,16 +127,7 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 > - `Workers Routes:Edit`：配置自定义路由
 > - `Workers KV:Write`：创建和管理 KV 命名空间
 
-### 2. 工作流输入参数
-
-手动触发时可配置以下参数：
-
-| 参数           | 说明                                                 | 默认值    |
-| -------------- | ---------------------------------------------------- | --------- |
-| `release_type` | 更新类型：release（正式版）或 prerelease（预发布版） | release   |
-| `kv-name`      | KV 命名空间名称，用于创建或查找已有的 KV 命名空间    | cf-bpb-kv |
-
-### 3. wrangler.toml 配置说明
+### 2. wrangler.toml 配置说明
 
 项目根目录下的 `wrangler.toml` 是 Cloudflare Workers 的核心配置文件，包含以下关键配置项：
 
@@ -157,14 +156,23 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 > - **重试机制**：KV 操作失败时自动重试最多 3 次，采用指数退避策略
 > - **跨平台**：提供 Bash（Linux/macOS）和 PowerShell（Windows）两个版本
 
-### 4. 更新类型配置（`update_type.txt`）
+### 3. 环境变量配置
 
-在仓库根目录下创建或修改 `update_type.txt` 文件：
+工作流中定义了以下环境变量（硬编码在 workflow 文件中）：
 
-- 文件内容为 `1`：表示定时任务将更新到**最新正式发布版本**。
-- 文件内容为 `0`：表示定时任务将更新到**最新预发布版本**。
-- **如果 `update_type.txt` 文件不存在，工作流会自动创建它并默认设置为 `1`（正式版）。**
-- **手动触发时，您可以通过 GitHub Actions 界面选择更新类型，此选择将覆盖 `update_type.txt` 的设置。**
+| 变量名         | 值                              | 说明                                                      |
+| -------------- | ------------------------------- | --------------------------------------------------------- |
+| `GITHUB_REPO`  | bia-pain-bache/BPB-Worker-Panel | 上游仓库地址                                              |
+| `RELEASE_TYPE` | release                         | 更新版本类型，`release` 为正式版，`prerelease` 为预发布版 |
+| `KV_NAME`      | cf-bpb-kv                       | KV 命名空间名称                                           |
+
+> 如需修改 `RELEASE_TYPE` 或 `KV_NAME`，请直接编辑 `.github/workflows/update_worker.yml` 文件中的 `env` 区块。
+
+### 4. 更新类型配置
+
+当前工作流**固定更新正式发布版本**（`RELEASE_TYPE: release`）。
+
+如需更新到预发布版本，需手动修改 workflow 文件中的 `RELEASE_TYPE` 环境变量值为 `prerelease`。
 
 ### 5. 更新成功通知
 
