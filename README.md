@@ -71,19 +71,22 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 
 ```text
 /
-├── _worker.js           # Cloudflare Worker 主文件
-├── version.txt          # 当前版本记录
-├── update_type.txt      # 更新类型配置 (1=正式版, 0=预发布版)
-├── wrangler.toml       # Cloudflare Workers 配置
-├── package.json         # 项目依赖配置
-├── scripts/             # 自动化脚本目录
-│   ├── step-kv.sh      # KV 命名空间创建/绑定脚本 (Linux/macOS)
-│   └── step-kv.ps1     # KV 命名空间创建/绑定脚本 (Windows)
-├── .gitignore
-├── README.md
-└── .github/
-    └── workflows/
-        └── update_worker.yml    # GitHub Actions 工作流
+├── _worker.js              # Cloudflare Worker 主文件（上游同步）
+├── version.txt             # 当前版本记录
+├── update_type.txt         # 更新类型配置 (1=正式版, 0=预发布版)
+├── wrangler.toml           # Cloudflare Workers 配置
+├── package.json            # 项目依赖配置
+├── scripts/                # 自动化脚本目录
+│   ├── step-kv.sh         # KV 命名空间创建/绑定脚本 (Linux/macOS)
+│   ├── step-kv.ps1        # KV 命名空间创建/绑定脚本 (Windows)
+│   └── backups/           # 配置文件备份目录（自动生成）
+├── .github/
+│   └── workflows/
+│       └── update_worker.yml    # GitHub Actions 工作流
+├── .gitignore              # Git 忽略配置
+├── .gitattributes          # Git 属性配置（脚本换行符处理）
+├── README.md               # 项目主文档
+└── README-exp.md           # 衍生项目文档参考
 ```
 
 ## ⚙️ 配置说明
@@ -100,6 +103,12 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 | `CF_VAR_TR_PASS`  | 否   | 自定义密码，用于更新 wrangler.toml 中的 `TR_PASS` 变量                                        |
 | `CF_ROUTE_DOMAIN` | 否   | 自定义域名（如 `shop.example.com`），配置后会自动设置 `workers_dev=false` 并添加 `[[routes]]` |
 
+> **提示**：`CF_API_TOKEN` 权限说明：
+>
+> - `Workers:Edit`：部署和更新 Worker
+> - `Workers Routes:Edit`：配置自定义路由
+> - `Workers KV:Write`：创建和管理 KV 命名空间
+
 ### 2. 工作流输入参数
 
 手动触发时可配置以下参数：
@@ -107,7 +116,7 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 | 参数           | 说明                                                 | 默认值    |
 | -------------- | ---------------------------------------------------- | --------- |
 | `release_type` | 更新类型：release（正式版）或 prerelease（预发布版） | release   |
-| `kv-name`      | KV 命名空间名称                                      | cf-bpb-kv |
+| `kv-name`      | KV 命名空间名称，用于创建或查找已有的 KV 命名空间    | cf-bpb-kv |
 
 ### 3. wrangler.toml 配置说明
 
@@ -120,11 +129,23 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 | `compatibility_date` | 兼容性日期，指定 Worker 运行的运行时版本                              |
 | `workers_dev`        | 是否启用 workers.dev 子域名                                           |
 | `preview_urls`       | 是否启用预览 URL                                                      |
-| `[vars]`             | 环境变量配置，如 `UUID`、`TR_PASS` 等                                 |
+| `[vars]`             | 环境变量配置，如 `UUID`（节点 ID）、`TR_PASS`（密码）等               |
 | `[[kv_namespaces]]`  | KV 命名空间绑定，`binding` 为代码中引用的名称，`id` 为实际命名空间 ID |
 | `[observability]`    | 可观测性配置，包含日志（logs）和调用追踪（traces）                    |
 
 > **注意**：`wrangler.toml` 中的 KV 命名空间 ID 会在工作流首次运行时自动创建并更新，无需手动配置。
+>
+> **环境变量说明**：
+>
+> - `UUID`：节点唯一标识符，建议使用随机生成的值
+> - `TR_PASS`：认证密码，用于 Worker 身份验证
+>
+> **KV 命名空间脚本特性**（`scripts/step-kv.sh` 和 `scripts/step-kv.ps1`）：
+>
+> - **自动复用**：会检查是否存在同名的 KV 命名空间，避免重复创建
+> - **配置备份**：更新 `wrangler.toml` 前自动备份现有配置到 `scripts/backups/` 目录
+> - **重试机制**：KV 操作失败时自动重试最多 3 次，采用指数退避策略
+> - **跨平台**：提供 Bash（Linux/macOS）和 PowerShell（Windows）两个版本
 
 ### 4. 更新类型配置（`update_type.txt`）
 
