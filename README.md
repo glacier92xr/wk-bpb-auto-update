@@ -92,10 +92,13 @@ GitHub Actions 会每日 **UTC 16:00（北京时间 00:00）** 自动运行：
 
 在仓库设置中添加以下 Secrets：
 
-| 名称            | 必填 | 说明                                                                                        |
-| --------------- | ---- | ------------------------------------------------------------------------------------------- |
-| `CF_API_TOKEN`  | 是   | Cloudflare API Token，需包含 `Workers:Edit`、`Workers Routes:Edit`、`Workers KV:Write` 权限 |
-| `CF_ACCOUNT_ID` | 是   | Cloudflare 账户 ID，可在 Dashboard URL 中获取                                               |
+| 名称              | 必填 | 说明                                                                                          |
+| ----------------- | ---- | --------------------------------------------------------------------------------------------- |
+| `CF_API_TOKEN`    | 是   | Cloudflare API Token，需包含 `Workers:Edit`、`Workers Routes:Edit`、`Workers KV:Write` 权限   |
+| `CF_ACCOUNT_ID`   | 是   | Cloudflare 账户 ID，可在 Dashboard URL 中获取                                                 |
+| `CF_VAR_UUID`     | 否   | 自定义 UUID 值，用于更新 wrangler.toml 中的 `UUID` 变量                                       |
+| `CF_VAR_TR_PASS`  | 否   | 自定义密码，用于更新 wrangler.toml 中的 `TR_PASS` 变量                                        |
+| `CF_ROUTE_DOMAIN` | 否   | 自定义域名（如 `shop.example.com`），配置后会自动设置 `workers_dev=false` 并添加 `[[routes]]` |
 
 ### 2. 工作流输入参数
 
