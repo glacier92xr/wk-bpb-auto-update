@@ -212,4 +212,4 @@ npm run deploy
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=glacier92xr/wk-bpb-auto-update&type=Timeline)](https://api.star-history.com/#glacier92xr/wk-bpb-auto-update&Timeline)
+![Star History Chart](https://api.star-history.com/svg?repos=glacier92xr/wk-bpb-auto-update&type=Timeline)
