@@ -1,6 +1,6 @@
 name = "wk-bpb"
 main = "_worker.js"
-compatibility_date = "2024-04-28"
+compatibility_date = "2024-04-29"
 no_bundle = true
 workers_dev = true
 preview_urls = true
