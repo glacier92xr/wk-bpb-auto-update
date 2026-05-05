@@ -1,6 +1,6 @@
-name = "wk-bpb"
+name = "wk-bp"
 main = "_worker.js"
-compatibility_date = "2024-04-29"
+compatibility_date = "2026-03-12"
 no_bundle = true
 workers_dev = true
 preview_urls = true
@@ -14,7 +14,8 @@ id = "56716a45f8764a67960d9dc7eacc40f0"
 [vars]
 # 修改为自己的
 UUID = "2475721d-a490-42d6-9255-cd1bddfb805d"
-TR_PASS = "157a9dd6-54fc-4228-aeac-8ff9676d074f"
+TR_PASS = "Z5D@r44gzK#@Bd2!"
+FALLBACK="www.speedtest.net"
 
 
 [observability]
